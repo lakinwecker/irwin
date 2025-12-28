@@ -17,6 +17,7 @@ class StockfishSettings(BaseSettings):
     memory: int = 2048
     nodes: int = 4500000
     update: bool = False
+    path: str = ""  # If set, use this path instead of auto-detecting
 
 
 class DbAuthSettings(BaseSettings):

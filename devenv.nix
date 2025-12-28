@@ -3,8 +3,44 @@ let
   python = pkgs.python311;
 
   n2c = inputs.nix2container.packages.${pkgs.system}.nix2container;
-  skopeo-nix2container = inputs.nix2container.packages.${pkgs.system}.skopeo-nix2container;
+  skopeo-nix2container =
+    inputs.nix2container.packages.${pkgs.system}.skopeo-nix2container;
 
+  # uv2nix setup - similar to rustPlatform.buildRustPackage but for Python/uv
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
+
+  overlay = workspace.mkPyprojectOverlay {
+    sourcePreference = "wheel";
+  };
+
+  pyprojectOverrides = final: prev: {
+    # python-chess needs setuptools as build dependency
+    python-chess = prev.python-chess.overrideAttrs (old: {
+      nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+        final.setuptools
+      ];
+    });
+
+    # tensorflow-io-gcs-filesystem needs tensorflow's native lib
+    tensorflow-io-gcs-filesystem = prev.tensorflow-io-gcs-filesystem.overrideAttrs (old: {
+      autoPatchelfIgnoreMissingDeps = [ "libtensorflow_framework.so.2" ];
+    });
+  };
+
+  pythonSet =
+    (pkgs.callPackage inputs.pyproject-nix.build.packages {
+      inherit python;
+    }).overrideScope
+      (lib.composeManyExtensions [
+        inputs.pyproject-build-systems.overlays.default
+        overlay
+        pyprojectOverrides
+      ]);
+
+  # Build the virtual environment with all dependencies
+  irwinVenv = pythonSet.mkVirtualEnv "irwin-env" workspace.deps.default;
+
+  # Source files
   irwinSrc = pkgs.stdenv.mkDerivation {
     name = "irwin-src";
     src = lib.cleanSource ./.;
@@ -15,39 +51,40 @@ let
     '';
   };
 
-  # Container with Python, uv, and dependencies pre-installed
-  makeContainer = { name, entrypoint }: n2c.buildImage {
-    name = name;
-    tag = "latest";
-    copyToRoot = pkgs.buildEnv {
-      name = "root";
-      paths = [
-        python
-        pkgs.uv
-        pkgs.cacert
-        pkgs.stockfish
-        pkgs.bashInteractive
-        pkgs.coreutils
-        irwinSrc
-      ];
-      pathsToLink = [ "/bin" "/lib" "/etc" ];
+  # Container with Python and pre-installed dependencies
+  makeContainer = { name, entrypoint }:
+    n2c.buildImage {
+      name = name;
+      tag = "latest";
+      copyToRoot = pkgs.buildEnv {
+        name = "root";
+        paths = [
+          pkgs.cacert
+          pkgs.bashInteractive
+          pkgs.coreutils
+          pkgs.zlib
+          pkgs.stdenv.cc.cc.lib
+          irwinVenv
+          irwinSrc
+        ];
+        pathsToLink = [ "/bin" "/lib" "/etc" ];
+      };
+      config = {
+        WorkingDir = "/app";
+        Env = [
+          "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+          "PATH=/bin:${irwinVenv}/bin"
+          "PYTHONPATH=${irwinSrc}"
+          "HOME=/tmp"
+          "TF_USE_LEGACY_KERAS=1"
+          "LD_LIBRARY_PATH=${pkgs.zlib}/lib:${pkgs.stdenv.cc.cc.lib}/lib"
+        ];
+        Entrypoint = [
+          "${irwinVenv}/bin/python"
+          "${irwinSrc}/${entrypoint}"
+        ];
+      };
     };
-    config = {
-      WorkingDir = "${irwinSrc}";
-      Env = [
-        "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-        "PATH=/bin"
-        "PYTHONPATH=${irwinSrc}"
-        "HOME=/tmp"
-        "UV_CACHE_DIR=/tmp/.uv-cache"
-        "TF_USE_LEGACY_KERAS=1"
-      ];
-      Entrypoint = [
-        "${pkgs.bashInteractive}/bin/bash" "-c"
-        "cd ${irwinSrc} && uv sync && uv run python ${entrypoint}"
-      ];
-    };
-  };
 
   lichessListenerContainer = makeContainer {
     name = "irwin-lichess-listener";
@@ -65,16 +102,9 @@ let
   };
 
 in {
-  packages = [
-    pkgs.stockfish
-    pkgs.zlib
-    pkgs.stdenv.cc.cc.lib
-  ];
+  packages = [ pkgs.stockfish pkgs.zlib pkgs.stdenv.cc.cc.lib ];
 
-  env.LD_LIBRARY_PATH = lib.makeLibraryPath [
-    pkgs.zlib
-    pkgs.stdenv.cc.cc.lib
-  ];
+  env.LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.zlib pkgs.stdenv.cc.cc.lib ];
 
   env.TF_USE_LEGACY_KERAS = "1";
 

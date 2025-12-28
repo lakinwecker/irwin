@@ -28,7 +28,10 @@ except ImportError:
     import urllib
 
 
-def stockfish_command(update=True):
+def stockfish_command(update=True, path=""):
+    if path:
+        return path
+
     filename = stockfish_filename()
 
     if update:
