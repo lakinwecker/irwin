@@ -21,3 +21,10 @@ class Env:
         self.analysedGameDB = AnalysedGameDB(db[self.config["game coll analysed_game"]])
         self.analysedGameActivationDB = AnalysedGameActivationDB(db[self.config["irwin coll analysed_game_activation"]])
         self.basicGameActivationDB = BasicGameActivationDB(db[self.config["irwin coll basic_game_activation"]])
+
+        self._ensure_indexes()
+
+    def _ensure_indexes(self):
+        self.gameDB.gameColl.create_index('white')
+        self.gameDB.gameColl.create_index('black')
+        self.analysedGameDB.analysedGameColl.create_index('userId')
