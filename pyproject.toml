@@ -1,0 +1,18 @@
+[project]
+name = "irwin"
+version = "0.1.0"
+description = "Chess cheating detection AI for Lichess"
+requires-python = ">=3.11"
+dependencies = [
+    "flask",
+    "numpy<2",
+    "pymongo",
+    "chess",
+    "requests",
+    "tensorflow==2.15.*",
+    "h5py",
+    "pydantic-settings",
+]
+
+[dependency-groups]
+dev = []

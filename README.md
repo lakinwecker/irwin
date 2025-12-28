@@ -17,39 +17,24 @@ pip3 install pymongo python-chess numpy requests
 ### Database
 - **mongodb** : [mongodb installation guide](https://docs.mongodb.com/manual/installation/)
 
-## Configuring
-### Create `conf/config.json`
-```javascript
-{
-  "api": {
-    "url": "https://lichess.org/",
-    "token": "token"
-  },
-  "stockfish": {
-    "threads": 4,
-    "memory": 2048,
-    "nodes": 4500000,
-    "update": false
-  },
-  "db": {
-    "host": "localhost",
-    "port": 27017,
-    "authenticate": false,
-    "authentication": {
-      "username": "username",
-      "password": "password"
-    }
-  },
-  "irwin": {
-    "train": {
-      "batchSize": 5000,
-      "cycles": 80
-    }
-  }
-}
-```
+## Configuration
 
-`conf/config.json` contains config for stockfish, mongodb, tensorflow, lichess (authentication token and URL), etc...
+Configure via environment variables (or legacy `conf/server_config.json` / `conf/client_config.json`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IRWIN_API_URL` | `https://lichess.org/` | Lichess API URL |
+| `IRWIN_API_TOKEN` | | Lichess API token |
+| `IRWIN_DB_HOST` | `localhost` | MongoDB host |
+| `IRWIN_DB_PORT` | `27017` | MongoDB port |
+| `IRWIN_DB_DATABASE` | `irwin` | MongoDB database name |
+| `IRWIN_DB_AUTHENTICATE` | `false` | Enable MongoDB auth |
+| `IRWIN_DB_AUTH_USERNAME` | | MongoDB username |
+| `IRWIN_DB_AUTH_PASSWORD` | | MongoDB password |
+| `IRWIN_STOCKFISH_THREADS` | `4` | Stockfish threads |
+| `IRWIN_STOCKFISH_MEMORY` | `2048` | Stockfish hash memory (MB) |
+| `IRWIN_STOCKFISH_NODES` | `4500000` | Stockfish nodes per position |
+| `IRWIN_LOGLEVEL` | `INFO` | Log level (DEBUG, INFO, WARNING, ERROR) |
 ### Build a database of analysed players
 If you do not already have a database of analysed players, it will be necessary to analyse
 a few hundred players to train the neural networks on.

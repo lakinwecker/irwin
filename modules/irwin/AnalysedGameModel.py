@@ -15,8 +15,6 @@ from keras.models import load_model, Model
 from keras.layers import Dropout, Embedding, Reshape, Dense, LSTM, Input, concatenate, Conv1D, Flatten
 from keras.optimizers import Adam
 
-from keras.engine.training import Model
-
 from numpy import ndarray
 
 GamePrediction = NewType('GamePrediction', int)

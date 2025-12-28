@@ -106,3 +106,7 @@ conf/*.json
 deploymodels.sh
 
 .venv
+
+# devenv
+.devenv/
+.devenv.flake.nix
