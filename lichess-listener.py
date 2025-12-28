@@ -82,13 +82,15 @@ while True:
             stream = True
         )
         for line in r.iter_lines():
+            if not line:  # skip empty keepalive lines
+                continue
             try:
                 payload = json.loads(line.decode("utf-8"))
                 if payload.get('keepAlive', False): # ignore keepalive commands
                     continue
                 handleLine(payload)
             except json.decoder.JSONDecodeError:
-                logging.warning(f"Failed to decode: {line.text}")
+                logging.warning(f"Failed to decode: {line}")
     except (ChunkedEncodingError, ConnectionError, NewConnectionError, ProtocolError, MaxRetryError, IncompleteRead, gaierror):
         sleep(5)
         continue

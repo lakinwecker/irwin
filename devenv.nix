@@ -1,4 +1,4 @@
-{ pkgs, inputs, lib, ... }:
+{ pkgs, inputs, lib, config, ... }:
 let
   python = pkgs.python311;
 
@@ -86,6 +86,8 @@ in {
       sync.enable = true;
     };
   };
+
+  services.mongodb.enable = true;
 
   processes = {
     lichess-listener.exec = "uv run python lichess-listener.py";

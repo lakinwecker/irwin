@@ -56,6 +56,13 @@ class GameSettings(BaseSettings):
     coll: GameCollSettings = Field(default_factory=GameCollSettings)
 
 
+class ServerSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix='IRWIN_SERVER_')
+    protocol: str = "http"
+    domain: str = "localhost"
+    port: int = 5000
+
+
 class AuthCollSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix='IRWIN_AUTH_COLL_')
     user: str = "user"
@@ -63,6 +70,8 @@ class AuthCollSettings(BaseSettings):
 
 
 class AuthSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix='IRWIN_AUTH_')
+    token: str = ""
     coll: AuthCollSettings = Field(default_factory=AuthCollSettings)
 
 
@@ -121,6 +130,7 @@ class Settings(BaseSettings):
     db: DbSettings = Field(default_factory=DbSettings)
     queue: QueueSettings = Field(default_factory=QueueSettings)
     game: GameSettings = Field(default_factory=GameSettings)
+    server: ServerSettings = Field(default_factory=ServerSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     irwin: IrwinSettings = Field(default_factory=IrwinSettings)
     loglevel: str = "INFO"

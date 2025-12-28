@@ -1,3 +1,8 @@
+## Python 3.10+ compatibility for old python-chess
+import collections
+import collections.abc
+collections.MutableMapping = collections.abc.MutableMapping
+
 ## Typing and enforcing of types
 from typing import NamedTuple, TypeVar, NewType, Iterable, List, Dict, Tuple
 from typing import Optional as Opt

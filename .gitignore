@@ -110,3 +110,6 @@ deploymodels.sh
 # devenv
 .devenv/
 .devenv.flake.nix
+
+# pipenv (legacy)
+Pipfile.lock
