@@ -1,0 +1,66 @@
+name: Build and Push Containers
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag"
+        required: true
+        default: "stage"
+        type: choice
+        options:
+          - stage
+          - latest
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Install devenv
+        run: nix profile install nixpkgs#devenv
+
+      - name: Set tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push webapp
+        if: github.event_name != 'pull_request'
+        run: |
+          devenv shell container-push-webapp \
+            docker://${{ env.REGISTRY }}/${{ github.repository }}-webapp:${{ steps.tag.outputs.tag }} \
+            --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Build and push lichess-listener
+        if: github.event_name != 'pull_request'
+        run: |
+          devenv shell container-push-listener \
+            docker://${{ env.REGISTRY }}/${{ github.repository }}-lichess-listener:${{ steps.tag.outputs.tag }} \
+            --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Build and push deep-queue
+        if: github.event_name != 'pull_request'
+        run: |
+          devenv shell container-push-deep-queue \
+            docker://${{ env.REGISTRY }}/${{ github.repository }}-deep-queue:${{ steps.tag.outputs.tag }} \
+            --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}"
