@@ -28,7 +28,7 @@ class EngineTools(NamedTuple('EngineTools', [
     ])):
     @staticmethod
     def new(conf: ConfigWrapper):
-        engine = uci.popen_engine(stockfish_command(conf['stockfish update']))
+        engine = uci.popen_engine(stockfish_command(conf['stockfish update'], conf['stockfish path']))
         engine.setoption({'Threads': conf['stockfish threads'], 'Hash': conf['stockfish memory']})
         engine.uci()
 

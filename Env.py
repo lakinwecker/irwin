@@ -32,7 +32,7 @@ class Env:
         self.engine = engine
 
         if self.engine:
-            self.engine = uci.popen_engine(stockfish_command(config['stockfish']['update']))
+            self.engine = uci.popen_engine(stockfish_command(config['stockfish']['update'], config['stockfish']['path']))
             self.engine.setoption({'Threads': config['stockfish']['threads'], 'Hash': config['stockfish']['memory']})
             self.engine.uci()
             self.infoHandler = uci.InfoHandler()
@@ -55,7 +55,7 @@ class Env:
     def restartEngine(self):
         if self.engine:
             self.engine.kill()
-            self.engine = uci.popen_engine(stockfish_command(self.config['stockfish']['update']))
+            self.engine = uci.popen_engine(stockfish_command(self.config['stockfish']['update'], self.config['stockfish']['path']))
             self.engine.setoption({'Threads': self.config['stockfish']['threads'], 'Hash': self.config['stockfish']['memory']})
             self.engine.uci()
             self.infoHandler = uci.InfoHandler()

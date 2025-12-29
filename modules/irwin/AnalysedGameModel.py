@@ -15,8 +15,6 @@ from keras.models import load_model, Model
 from keras.layers import Dropout, Embedding, Reshape, Dense, LSTM, Input, concatenate, Conv1D, Flatten
 from keras.optimizers import Adam
 
-from keras.engine.training import Model
-
 from numpy import ndarray
 
 GamePrediction = NewType('GamePrediction', int)
@@ -61,7 +59,6 @@ class AnalysedGameModel:
         if os.path.isfile(self.config["irwin model analysed file"]) and not newmodel:
             logging.debug("model already exists, opening from file")
             m = load_model(self.config["irwin model analysed file"])
-            m._make_predict_function()
             return m
         logging.debug('model does not exist, building from scratch')
         inputGame = Input(shape=(60, 13), dtype='float32', name='game_input')

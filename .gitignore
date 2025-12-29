@@ -106,3 +106,10 @@ conf/*.json
 deploymodels.sh
 
 .venv
+
+# devenv
+.devenv/
+.devenv.flake.nix
+
+# pipenv (legacy)
+Pipfile.lock
