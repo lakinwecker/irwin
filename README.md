@@ -17,24 +17,46 @@ pip3 install pymongo python-chess numpy requests
 ### Database
 - **mongodb** : [mongodb installation guide](https://docs.mongodb.com/manual/installation/)
 
+## Services
+
+- **webapp** (`app.py`) - Flask API server, coordinates analysis jobs
+- **lichess-listener** (`lichess-listener.py`) - Streams analysis requests from Lichess
+- **deep-queue** (`client.py`) - Worker that analyzes games with Stockfish
+
 ## Configuration
 
-Configure via environment variables (or legacy `conf/server_config.json` / `conf/client_config.json`):
+Configure via environment variables (or legacy `conf/server_config.json` / `conf/client_config.json`).
+
+### webapp & lichess-listener
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `IRWIN_API_URL` | `https://lichess.org/` | Lichess API URL |
-| `IRWIN_API_TOKEN` | | Lichess API token |
 | `IRWIN_DB_HOST` | `localhost` | MongoDB host |
 | `IRWIN_DB_PORT` | `27017` | MongoDB port |
 | `IRWIN_DB_DATABASE` | `irwin` | MongoDB database name |
 | `IRWIN_DB_AUTHENTICATE` | `false` | Enable MongoDB auth |
 | `IRWIN_DB_AUTH_USERNAME` | | MongoDB username |
 | `IRWIN_DB_AUTH_PASSWORD` | | MongoDB password |
+| `IRWIN_API_URL` | `https://lichess.org/` | Lichess API URL |
+| `IRWIN_API_TOKEN` | | Lichess API token (required for lichess-listener) |
+| `IRWIN_MODEL_BASIC_FILE` | `modules/irwin/models/basicGame.h5` | Basic model path |
+| `IRWIN_MODEL_ANALYSED_FILE` | `modules/irwin/models/analysedGame.h5` | Analysed model path |
+| `IRWIN_LOGLEVEL` | `INFO` | Log level |
+
+### deep-queue
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IRWIN_SERVER_PROTOCOL` | `http` | Webapp protocol |
+| `IRWIN_SERVER_DOMAIN` | `localhost` | Webapp host |
+| `IRWIN_SERVER_PORT` | `5000` | Webapp port |
+| `IRWIN_AUTH_TOKEN` | | Auth token for webapp API |
+| `IRWIN_STOCKFISH_PATH` | | Path to stockfish binary (required in container) |
 | `IRWIN_STOCKFISH_THREADS` | `4` | Stockfish threads |
 | `IRWIN_STOCKFISH_MEMORY` | `2048` | Stockfish hash memory (MB) |
-| `IRWIN_STOCKFISH_NODES` | `4500000` | Stockfish nodes per position |
-| `IRWIN_LOGLEVEL` | `INFO` | Log level (DEBUG, INFO, WARNING, ERROR) |
+| `IRWIN_STOCKFISH_NODES` | `4500000` | Nodes per position |
+| `IRWIN_LOGLEVEL` | `INFO` | Log level |
+
 ### Build a database of analysed players
 If you do not already have a database of analysed players, it will be necessary to analyse
 a few hundred players to train the neural networks on.
