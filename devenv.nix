@@ -55,7 +55,9 @@ let
   stockfishBin = pkgs.stdenv.mkDerivation {
     name = "stockfish-bin";
     src = ./stockfish;
-    phases = [ "installPhase" ];
+    nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+    buildInputs = [ pkgs.stdenv.cc.cc.lib ];
+    phases = [ "installPhase" "fixupPhase" ];
     installPhase = ''
       mkdir -p $out/bin
       cp $src/stockfish-x86_64-modern $out/bin/stockfish
