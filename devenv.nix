@@ -51,8 +51,20 @@ let
     '';
   };
 
+  # Stockfish binary for deep-queue container
+  stockfishBin = pkgs.stdenv.mkDerivation {
+    name = "stockfish-bin";
+    src = ./stockfish;
+    phases = [ "installPhase" ];
+    installPhase = ''
+      mkdir -p $out/bin
+      cp $src/stockfish-x86_64-modern $out/bin/stockfish
+      chmod +x $out/bin/stockfish
+    '';
+  };
+
   # Container with Python and pre-installed dependencies
-  makeContainer = { name, entrypoint }:
+  makeContainer = { name, entrypoint, extraPackages ? [], extraEnv ? [] }:
     n2c.buildImage {
       name = name;
       tag = "latest";
@@ -66,7 +78,7 @@ let
           pkgs.stdenv.cc.cc.lib
           irwinVenv
           irwinSrc
-        ];
+        ] ++ extraPackages;
         pathsToLink = [ "/bin" "/lib" "/etc" ];
       };
       config = {
@@ -78,7 +90,7 @@ let
           "HOME=/tmp"
           "TF_USE_LEGACY_KERAS=1"
           "LD_LIBRARY_PATH=${pkgs.zlib}/lib:${pkgs.stdenv.cc.cc.lib}/lib"
-        ];
+        ] ++ extraEnv;
         Entrypoint = [
           "${irwinVenv}/bin/python"
           "${irwinSrc}/${entrypoint}"
@@ -99,6 +111,8 @@ let
   deepQueueContainer = makeContainer {
     name = "irwin-deep-queue";
     entrypoint = "client.py";
+    extraPackages = [ stockfishBin ];
+    extraEnv = [ "IRWIN_STOCKFISH_PATH=/bin/stockfish" ];
   };
 
 in {
