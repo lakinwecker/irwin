@@ -20,31 +20,18 @@ from modules.lichess.Request import Request
 from modules.queue.EngineQueue import EngineQueue
 
 import json
-import argparse
 import logging
 import os
 import sys
 from time import sleep
 
-parser = argparse.ArgumentParser(description=__doc__)
+config = ConfigWrapper.new(os.environ.get("IRWIN_CONFIG", "conf/server_config.json"))
 
-parser.add_argument(
-    "--quiet",
-    dest="loglevel",
-    default=logging.DEBUG,
-    action="store_const",
-    const=logging.INFO,
-    help="reduce the number of logged messages",
-)
-settings = parser.parse_args()
-
-logging.basicConfig(format="%(message)s", level=settings.loglevel, stream=sys.stdout)
+logging.basicConfig(format="%(message)s", level=config.loglevel.upper(), stream=sys.stdout)
 logging.getLogger("requests.packages.urllib3").setLevel(logging.WARNING)
 logging.getLogger("chess.uci").setLevel(logging.WARNING)
 logging.getLogger("modules.fishnet.fishnet").setLevel(logging.WARNING)
-
-
-config = ConfigWrapper.new(os.environ.get("IRWIN_CONFIG", "conf/server_config.json"))
+logging.getLogger("pymongo").setLevel(logging.WARNING)
 
 env = Env(config)
 
