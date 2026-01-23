@@ -1,6 +1,7 @@
 from default_imports import *
 
 import argparse
+import os
 import sys
 import time
 import json
@@ -18,7 +19,7 @@ from modules.client.Env import Env
 from modules.client.Api import Api
 
 
-conf = ConfigWrapper.new('conf/client_config.json')
+conf = ConfigWrapper.new(os.environ.get("IRWIN_CONFIG", "conf/client_config.json"))
 
 parser = argparse.ArgumentParser(description=__doc__)
 ## Training
