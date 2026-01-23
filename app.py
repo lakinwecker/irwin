@@ -1,5 +1,6 @@
 from default_imports import *
 
+import os
 import sys
 
 from conf.ConfigWrapper import ConfigWrapper
@@ -13,7 +14,7 @@ from flask import Flask
 from webapp.controllers.api.blueprint import buildApiBlueprint
 
 
-config = ConfigWrapper.new('conf/server_config.json')
+config = ConfigWrapper.new(os.environ.get("IRWIN_CONFIG", "conf/server_config.json"))
 
 loglevels = {
     'CRITICAL': logging.CRITICAL,

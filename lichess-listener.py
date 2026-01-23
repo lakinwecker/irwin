@@ -1,11 +1,15 @@
 """Stream listener for Irwin. Acts on player status updates, and analysis requests"""
+
 from default_imports import *
 
 from conf.ConfigWrapper import ConfigWrapper
 
-import requests
 from requests.exceptions import ChunkedEncodingError, ConnectionError
-from requests.packages.urllib3.exceptions import NewConnectionError, ProtocolError, MaxRetryError
+from requests.packages.urllib3.exceptions import (
+    NewConnectionError,
+    ProtocolError,
+    MaxRetryError,
+)
 from http.client import IncompleteRead
 from socket import gaierror
 
@@ -18,15 +22,20 @@ from modules.queue.EngineQueue import EngineQueue
 import json
 import argparse
 import logging
+import os
 import sys
-from datetime import datetime, timedelta
 from time import sleep
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument("--quiet", dest="loglevel",
-                    default=logging.DEBUG, action="store_const", const=logging.INFO,
-                    help="reduce the number of logged messages")
+parser.add_argument(
+    "--quiet",
+    dest="loglevel",
+    default=logging.DEBUG,
+    action="store_const",
+    const=logging.INFO,
+    help="reduce the number of logged messages",
+)
 settings = parser.parse_args()
 
 logging.basicConfig(format="%(message)s", level=settings.loglevel, stream=sys.stdout)
@@ -35,7 +44,7 @@ logging.getLogger("chess.uci").setLevel(logging.WARNING)
 logging.getLogger("modules.fishnet.fishnet").setLevel(logging.WARNING)
 
 
-config = ConfigWrapper.new('conf/server_config.json')
+config = ConfigWrapper.new(os.environ.get("IRWIN_CONFIG", "conf/server_config.json"))
 
 env = Env(config)
 
@@ -45,11 +54,12 @@ Possible messages that lichess will emit
 {'t':'request', 'origin': 'moderator', 'user': {'id': 'userId', 'titled': bool, 'engine': bool, 'games': int}, 'games': [<game>]}
 """
 
+
 def handleLine(payload: Dict):
     request = Request.fromJson(payload)
     if request is not None:
         playerId = request.player.id
-        logging.info(f'Processing request for {request.player}')
+        logging.info(f"Processing request for {request.player}")
         # store user
         env.gameApi.writePlayer(request.player)
         # store games
@@ -60,12 +70,20 @@ def handleLine(payload: Dict):
         newEngineQueue = EngineQueue.new(
             playerId=playerId,
             origin=request.origin,
-            gamesAndPredictions=list(zip(request.games, env.irwin.basicGameModel.predict(playerId, request.games))))
+            gamesAndPredictions=list(
+                zip(
+                    request.games,
+                    env.irwin.basicGameModel.predict(playerId, request.games),
+                )
+            ),
+        )
 
         if existingEngineQueue is not None and not existingEngineQueue.completed:
             newEngineQueue = EngineQueue.merge(existingEngineQueue, newEngineQueue)
 
-        requiredGames = env.gameApi.gamesForAnalysis(playerId, newEngineQueue.requiredGameIds)
+        requiredGames = env.gameApi.gamesForAnalysis(
+            playerId, newEngineQueue.requiredGameIds
+        )
         if len(requiredGames) > 0:
             env.queue.queueEngineAnalysis(newEngineQueue)
 
@@ -74,23 +92,31 @@ session = http.get_requests_session_with_keepalive()
 while True:
     try:
         r = session.get(
-            config.api.url + 'api/stream/irwin',
-            headers = {
-                'User-Agent': 'Irwin',
-                'Authorization': f'Bearer {config.api.token}'
+            config.api.url + "api/stream/irwin",
+            headers={
+                "User-Agent": "Irwin",
+                "Authorization": f"Bearer {config.api.token}",
             },
-            stream = True
+            stream=True,
         )
         for line in r.iter_lines():
             if not line:  # skip empty keepalive lines
                 continue
             try:
                 payload = json.loads(line.decode("utf-8"))
-                if payload.get('keepAlive', False): # ignore keepalive commands
+                if payload.get("keepAlive", False):  # ignore keepalive commands
                     continue
                 handleLine(payload)
             except json.decoder.JSONDecodeError:
                 logging.warning(f"Failed to decode: {line}")
-    except (ChunkedEncodingError, ConnectionError, NewConnectionError, ProtocolError, MaxRetryError, IncompleteRead, gaierror):
+    except (
+        ChunkedEncodingError,
+        ConnectionError,
+        NewConnectionError,
+        ProtocolError,
+        MaxRetryError,
+        IncompleteRead,
+        gaierror,
+    ):
         sleep(5)
         continue
