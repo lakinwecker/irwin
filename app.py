@@ -44,4 +44,4 @@ apiBlueprint = buildApiBlueprint(env)
 app.register_blueprint(apiBlueprint)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", threaded=True)
+    app.run(host=config.server.host, port=config.server.port, threaded=True)

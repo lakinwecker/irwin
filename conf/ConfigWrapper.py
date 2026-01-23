@@ -68,6 +68,7 @@ class GameSettings(BaseSettings):
 class ServerSettings(BaseSettings):
     """Webapp server settings. Used by: deep-queue (to connect to webapp)"""
     model_config = SettingsConfigDict(env_prefix='IRWIN_SERVER_')
+    host: str = "0.0.0.0"
     protocol: str = "http"
     domain: str = "localhost"
     port: int = 5000
