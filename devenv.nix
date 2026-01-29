@@ -51,6 +51,17 @@ let
     '';
   };
 
+  # Models for containers that need ML inference
+  irwinModels = pkgs.stdenv.mkDerivation {
+    name = "irwin-models";
+    src = ./modules/irwin/models;
+    phases = [ "installPhase" ];
+    installPhase = ''
+      mkdir -p $out/etc/irwin/models
+      cp $src/*.h5 $out/etc/irwin/models/
+    '';
+  };
+
   # Stockfish binary for deep-queue container
   stockfishBin = pkgs.stdenv.mkDerivation {
     name = "stockfish-bin";
@@ -103,6 +114,7 @@ let
   lichessListenerContainer = makeContainer {
     name = "irwin-lichess-listener";
     entrypoint = "lichess-listener.py";
+    extraPackages = [ irwinModels ];
     extraEnv = [
       "IRWIN_MODEL_BASIC_FILE=/etc/irwin/models/basicGame.h5"
       "IRWIN_MODEL_ANALYSED_FILE=/etc/irwin/models/analysedGame.h5"
@@ -112,6 +124,7 @@ let
   irwinWebappContainer = makeContainer {
     name = "irwin-webapp";
     entrypoint = "app.py";
+    extraPackages = [ irwinModels ];
     extraEnv = [
       "IRWIN_MODEL_BASIC_FILE=/etc/irwin/models/basicGame.h5"
       "IRWIN_MODEL_ANALYSED_FILE=/etc/irwin/models/analysedGame.h5"
