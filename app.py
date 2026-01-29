@@ -12,6 +12,7 @@ from modules.db.DBManager import DBManager
 from flask import Flask
 
 from webapp.controllers.api.blueprint import buildApiBlueprint
+from webapp.metrics import metrics_response
 
 
 config = ConfigWrapper.new(os.environ.get("IRWIN_CONFIG", "conf/server_config.json"))
@@ -42,6 +43,12 @@ app = Flask(__name__)
 apiBlueprint = buildApiBlueprint(env)
 
 app.register_blueprint(apiBlueprint)
+
+
+@app.route('/metrics')
+def metrics():
+    return metrics_response()
+
 
 if __name__ == "__main__":
     app.run(host=config.server.host, port=config.server.port, threaded=True)

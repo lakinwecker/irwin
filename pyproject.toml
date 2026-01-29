@@ -12,6 +12,7 @@ dependencies = [
     "tensorflow==2.15.*",
     "h5py",
     "pydantic-settings",
+    "prometheus-client",
 ]
 
 [dependency-groups]

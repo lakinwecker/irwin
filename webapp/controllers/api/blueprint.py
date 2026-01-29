@@ -1,6 +1,7 @@
 import logging
 from flask import Blueprint, Response, request, jsonify, json
 from webapp.DefaultResponse import Success, BadRequest, NotAvailable
+from webapp.metrics import record_activation, record_job_started, record_job_completed
 
 from modules.game.AnalysedGame import GameAnalysedGame
 from modules.irwin.PlayerReport import PlayerReport
@@ -30,6 +31,7 @@ def buildApiBlueprint(env):
                 analysedPositions = [])
 
             logging.info(f'Job: {job}')
+            record_job_started(engineQueue.id, engineQueue.date)
 
             return  Response(
                 response = json.dumps(job.toJson()),
@@ -46,6 +48,7 @@ def buildApiBlueprint(env):
             insertRes = env.gameApi.writeAnalysedGames(req['analysedGames'])
             if insertRes:
                 env.queue.completeEngineAnalysis(job.playerId)
+                record_job_completed(job.playerId)
 
                 player = env.irwin.env.playerDB.byId(job.playerId)
                 analysedGames = env.irwin.env.analysedGameDB.byPlayerId(job.playerId)
@@ -54,6 +57,7 @@ def buildApiBlueprint(env):
 
                 playerReport = PlayerReport.new(player, zip(analysedGames, predictions), owner = authable.name)
                 logging.warning(f'Sending player report for {playerReport.playerId}, activation {playerReport.activation}%')
+                record_activation(playerReport.activation)
                 env.lichessApi.postReport(playerReport)
 
                 return Success
