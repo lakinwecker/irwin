@@ -26,12 +26,23 @@ class BasicGameModel:
         self.model = self.createModel(newmodel)
 
     def createModel(self, newmodel: bool = False):
-        if os.path.isfile(self.config["irwin model basic file"]) and not newmodel:
-            logging.debug("model already exists, opening from file")
-            m = load_model(self.config["irwin model basic file"])
-            return m
-        logging.debug('model does not exist, building from scratch')
+        model_path = self.config["irwin model basic file"]
+        if newmodel:
+            logging.info("Creating new BasicGameModel (newmodel=True)")
+            return self._buildModel()
 
+        if not os.path.isfile(model_path):
+            raise FileNotFoundError(f"BasicGameModel file not found: {model_path}")
+
+        logging.info(f"Loading BasicGameModel from {model_path}")
+        try:
+            m = load_model(model_path)
+            logging.info("BasicGameModel loaded successfully")
+            return m
+        except Exception as e:
+            raise RuntimeError(f"Failed to load BasicGameModel from {model_path}: {e}") from e
+
+    def _buildModel(self):
         moveStatsInput = Input(shape=(60, 8), dtype='float32', name='move_input')
         pieceType = Input(shape=(60, 1), dtype='float32', name='piece_type')
 
