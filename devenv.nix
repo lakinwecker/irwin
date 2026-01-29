@@ -103,11 +103,19 @@ let
   lichessListenerContainer = makeContainer {
     name = "irwin-lichess-listener";
     entrypoint = "lichess-listener.py";
+    extraEnv = [
+      "IRWIN_MODEL_BASIC_FILE=/etc/irwin/models/basicGame.h5"
+      "IRWIN_MODEL_ANALYSED_FILE=/etc/irwin/models/analysedGame.h5"
+    ];
   };
 
   irwinWebappContainer = makeContainer {
     name = "irwin-webapp";
     entrypoint = "app.py";
+    extraEnv = [
+      "IRWIN_MODEL_BASIC_FILE=/etc/irwin/models/basicGame.h5"
+      "IRWIN_MODEL_ANALYSED_FILE=/etc/irwin/models/analysedGame.h5"
+    ];
   };
 
   deepQueueContainer = makeContainer {
