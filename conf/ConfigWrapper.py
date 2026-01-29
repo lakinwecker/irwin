@@ -95,9 +95,16 @@ class IrwinCollSettings(BaseSettings):
     basic_game_activation: str = "basicGameActivation"
 
 
-class IrwinModelTrainingSettings(BaseSettings):
-    """Model training settings. Used by: webapp (training only)"""
-    model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_TRAINING_')
+class IrwinModelBasicTrainingSettings(BaseSettings):
+    """Basic model training settings. Used by: webapp (training only)"""
+    model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_BASIC_TRAINING_')
+    epochs: int = 20
+    sample_size: int = 1000
+
+
+class IrwinModelAnalysedTrainingSettings(BaseSettings):
+    """Analysed model training settings. Used by: webapp (training only)"""
+    model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_ANALYSED_TRAINING_')
     epochs: int = 20
     sample_size: int = 1000
 
@@ -106,14 +113,14 @@ class IrwinModelBasicSettings(BaseSettings):
     """Basic model settings. Used by: webapp, lichess-listener"""
     model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_BASIC_')
     file: str = "modules/irwin/models/basicGame.h5"
-    training: IrwinModelTrainingSettings = Field(default_factory=IrwinModelTrainingSettings)
+    training: IrwinModelBasicTrainingSettings = Field(default_factory=IrwinModelBasicTrainingSettings)
 
 
 class IrwinModelAnalysedSettings(BaseSettings):
     """Analysed model settings. Used by: webapp, lichess-listener"""
     model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_ANALYSED_')
     file: str = "modules/irwin/models/analysedGame.h5"
-    training: IrwinModelTrainingSettings = Field(default_factory=IrwinModelTrainingSettings)
+    training: IrwinModelAnalysedTrainingSettings = Field(default_factory=IrwinModelAnalysedTrainingSettings)
 
 
 class IrwinModelSettings(BaseSettings):
@@ -158,6 +165,68 @@ class Settings(BaseSettings):
     loglevel: str = "INFO"
 
 
+def _collect_env_mappings(cls, path: list[str] | None = None) -> Dict[str, list[str]]:
+    """Collect mapping of env var names to config paths by introspecting pydantic models."""
+    if path is None:
+        path = []
+
+    mappings: Dict[str, list[str]] = {}
+
+    prefix = ''
+    if hasattr(cls, 'model_config'):
+        mc = cls.model_config
+        if isinstance(mc, dict):
+            prefix = mc.get('env_prefix', '')
+        elif hasattr(mc, 'get'):
+            prefix = mc.get('env_prefix', '') or ''
+
+    for field_name, field_info in cls.model_fields.items():
+        current_path = path + [field_name]
+        field_type = field_info.annotation
+
+        origin = getattr(field_type, '__origin__', None)
+        if origin is not None:
+            args = getattr(field_type, '__args__', ())
+            field_type = next((a for a in args if a is not type(None)), field_type)
+
+        if hasattr(field_type, 'model_fields'):
+            nested_mappings = _collect_env_mappings(field_type, current_path)
+            mappings.update(nested_mappings)
+        else:
+            env_var = f"{prefix}{field_name}".upper()
+            mappings[env_var] = current_path
+
+    return mappings
+
+
+def _get_by_path(d: Dict, path: list[str]):
+    """Get a value from a nested dict by path."""
+    for key in path:
+        if not isinstance(d, dict):
+            return None
+        d = d.get(key, {})
+    return d
+
+
+def _set_by_path(d: Dict, path: list[str], value):
+    """Set a value in a nested dict by path, creating intermediate dicts as needed."""
+    for key in path[:-1]:
+        d = d.setdefault(key, {})
+    d[path[-1]] = value
+
+
+def _merge_env_over_file(file_config: Dict, env_config: Dict, mappings: Dict[str, list[str]]) -> Dict:
+    """Merge env config over file config, but only for env vars that are actually set."""
+    result = json.loads(json.dumps(file_config))
+
+    for env_var, path in mappings.items():
+        if env_var in os.environ:
+            value = _get_by_path(env_config, path)
+            _set_by_path(result, path, value)
+
+    return result
+
+
 class ConfigWrapper:
     """
     Wrapper that provides backward-compatible access to settings.
@@ -168,11 +237,19 @@ class ConfigWrapper:
 
     @staticmethod
     def new(filename: str) -> 'ConfigWrapper':
-        """Load from file if it exists, otherwise from environment variables."""
-        if os.path.exists(filename):
-            with open(filename) as confFile:
-                return ConfigWrapper(json.load(confFile))
-        return ConfigWrapper.from_env()
+        """Load from file with env vars taking precedence, or just env vars if no file."""
+        env_settings = Settings()
+        env_config = env_settings.model_dump(by_alias=True)
+
+        if not os.path.exists(filename):
+            return ConfigWrapper(env_config)
+
+        with open(filename) as confFile:
+            file_config = json.load(confFile)
+
+        mappings = _collect_env_mappings(Settings)
+        merged = _merge_env_over_file(file_config, env_config, mappings)
+        return ConfigWrapper(merged)
 
     @staticmethod
     def from_env() -> 'ConfigWrapper':
