@@ -6,7 +6,6 @@ import numpy as np
 import logging
 import os
 
-from random import shuffle
 from math import ceil
 
 from modules.game.AnalysedGame import GameAnalysedGame
@@ -56,11 +55,23 @@ class AnalysedGameModel:
         self.model = self.createModel(newmodel)
     
     def createModel(self, newmodel: bool = False) -> Model:
-        if os.path.isfile(self.config["irwin model analysed file"]) and not newmodel:
-            logging.debug("model already exists, opening from file")
-            m = load_model(self.config["irwin model analysed file"])
+        model_path = self.config["irwin model analysed file"]
+        if newmodel:
+            logging.info("Creating new AnalysedGameModel (newmodel=True)")
+            return self._buildModel()
+
+        if not os.path.isfile(model_path):
+            raise FileNotFoundError(f"AnalysedGameModel file not found: {model_path}")
+
+        logging.info(f"Loading AnalysedGameModel from {model_path}")
+        try:
+            m = load_model(model_path)
+            logging.info("AnalysedGameModel loaded successfully")
             return m
-        logging.debug('model does not exist, building from scratch')
+        except Exception as e:
+            raise RuntimeError(f"Failed to load AnalysedGameModel from {model_path}: {e}") from e
+
+    def _buildModel(self) -> Model:
         inputGame = Input(shape=(60, 13), dtype='float32', name='game_input')
         pieceType = Input(shape=(60, 1), dtype='float32', name='piece_type')
 
@@ -68,8 +79,6 @@ class AnalysedGameModel:
         rshape = Reshape((60,8))(pieceEmbed)
 
         concats = concatenate(inputs=[inputGame, rshape])
-
-        # Merge embeddings
 
         ### Conv Net Block of Siamese Network
         conv1 = Conv1D(filters=64, kernel_size=3, activation='relu')(concats)
@@ -84,12 +93,9 @@ class AnalysedGameModel:
         dense5 = Dense(64, activation='relu')(f)
         convNetOutput = Dense(16, activation='sigmoid')(dense5)
 
-
         ### LSTM Block of Siamese Network
-        # merge move stats with move options
         c1 = Conv1D(filters=128, kernel_size=5, name='conv1')(concats)
 
-        # analyse all the moves and come to a decision about the game
         l1 = LSTM(128, return_sequences=True)(c1)
         l2 = LSTM(128, return_sequences=True, activation='sigmoid')(l1)
 
@@ -104,12 +110,9 @@ class AnalysedGameModel:
         s1 = Dense(16, activation='sigmoid')(l4)
         lstmMove = Dense(1, activation='sigmoid', name='lstm_move_output')(s1)
 
-        # isolated consideration of move blocks
-
         mi1 = Dense(64, activation='relu')(c1)
         mi2 = Dense(16, activation='relu')(mi1)
         isolatedMove = Dense(1, activation='sigmoid', name='isolated_move')(mi2)
-
 
         mergeLSTMandConv = concatenate([d4, convNetOutput])
         denseOut1 = Dense(16, activation='sigmoid')(mergeLSTMandConv)
