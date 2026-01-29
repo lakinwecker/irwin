@@ -95,9 +95,16 @@ class IrwinCollSettings(BaseSettings):
     basic_game_activation: str = "basicGameActivation"
 
 
-class IrwinModelTrainingSettings(BaseSettings):
-    """Model training settings. Used by: webapp (training only)"""
-    model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_TRAINING_')
+class IrwinModelBasicTrainingSettings(BaseSettings):
+    """Basic model training settings. Used by: webapp (training only)"""
+    model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_BASIC_TRAINING_')
+    epochs: int = 20
+    sample_size: int = 1000
+
+
+class IrwinModelAnalysedTrainingSettings(BaseSettings):
+    """Analysed model training settings. Used by: webapp (training only)"""
+    model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_ANALYSED_TRAINING_')
     epochs: int = 20
     sample_size: int = 1000
 
@@ -106,14 +113,14 @@ class IrwinModelBasicSettings(BaseSettings):
     """Basic model settings. Used by: webapp, lichess-listener"""
     model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_BASIC_')
     file: str = "modules/irwin/models/basicGame.h5"
-    training: IrwinModelTrainingSettings = Field(default_factory=IrwinModelTrainingSettings)
+    training: IrwinModelBasicTrainingSettings = Field(default_factory=IrwinModelBasicTrainingSettings)
 
 
 class IrwinModelAnalysedSettings(BaseSettings):
     """Analysed model settings. Used by: webapp, lichess-listener"""
     model_config = SettingsConfigDict(env_prefix='IRWIN_MODEL_ANALYSED_')
     file: str = "modules/irwin/models/analysedGame.h5"
-    training: IrwinModelTrainingSettings = Field(default_factory=IrwinModelTrainingSettings)
+    training: IrwinModelAnalysedTrainingSettings = Field(default_factory=IrwinModelAnalysedTrainingSettings)
 
 
 class IrwinModelSettings(BaseSettings):
